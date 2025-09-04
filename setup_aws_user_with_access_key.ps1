@@ -24,33 +24,20 @@ $accessKey = aws iam create-access-key --user-name $userName | ConvertFrom-Json
 $accessKeyId = $accessKey.AccessKey.AccessKeyId
 $secretAccessKey = $accessKey.AccessKey.SecretAccessKey
 
-# Define the .aws directory path (Windows-specific)
-$awsDir = Join-Path $env:USERPROFILE ".aws"
+# Get the current user's Downloads folder
+$downloadsPath = [Environment]::GetFolderPath("UserProfile") + "\Downloads"
+$csvFileName = "aws_access_keys_$userName.csv"
+$csvPath = Join-Path $downloadsPath $csvFileName
 
-# Create the .aws directory if it doesn't exist
-if (-not (Test-Path -Path $awsDir)) {
-    New-Item -ItemType Directory -Path $awsDir -Force | Out-Null
-    attrib +h $awsDir  # Make folder hidden on Windows
-}
+# Prepare CSV content
+$csvContent = @()
+$csvContent += "AccessKeyId,SecretAccessKey"
+$csvContent += "$accessKeyId,$secretAccessKey"
 
-# Write the config file
-$configContent = @"
-[default]
-region = us-east-1
-"@
-$configPath = Join-Path $awsDir "config"
-$configContent | Set-Content -Path $configPath -Encoding UTF8
-
-# Write the credentials file
-$credentialsContent = @"
-[default]
-aws_access_key_id = $accessKeyId
-aws_secret_access_key = $secretAccessKey
-"@
-$credentialsPath = Join-Path $awsDir "credentials"
-$credentialsContent | Set-Content -Path $credentialsPath -Encoding UTF8
+# Write to CSV file
+$csvContent | Set-Content -Path $csvPath -Encoding UTF8
 
 # Output confirmation
-Write-Host "✅ IAM user '$userName' created and configured successfully."
-Write-Host "✅ AWS CLI credentials saved to hidden folder: $awsDir"
-Write-Host "✅ You can now run 'aws sts get-caller-identity' to verify access."
+Write-Host "✅ IAM user '$userName' created."
+Write-Host "✅ Access keys exported to: $csvPath
+
