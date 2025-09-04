@@ -38,6 +38,7 @@ $csvContent += "$accessKeyId,$secretAccessKey"
 $csvContent | Set-Content -Path $csvPath -Encoding UTF8
 
 # Output confirmation
-Write-Host "✅ IAM user '$userName' created."
-Write-Host "✅ Access keys exported to: $csvPath
+Write-Host "IAM user '$userName' created."
+Write-Host "Access keys exported to: $csvPath"
+
 
