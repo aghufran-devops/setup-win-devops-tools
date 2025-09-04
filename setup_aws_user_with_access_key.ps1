@@ -1,4 +1,3 @@
-
 # Define the IAM user name
 $userName = "eks-s3-dynamo-ecr-ec2-user"
 
@@ -25,14 +24,13 @@ $accessKey = aws iam create-access-key --user-name $userName | ConvertFrom-Json
 $accessKeyId = $accessKey.AccessKey.AccessKeyId
 $secretAccessKey = $accessKey.AccessKey.SecretAccessKey
 
-# Define the .aws directory path
-$awsDir = "$HOME\.aws"
+# Define the .aws directory path (Windows-specific)
+$awsDir = Join-Path $env:USERPROFILE ".aws"
 
 # Create the .aws directory if it doesn't exist
 if (-not (Test-Path -Path $awsDir)) {
     New-Item -ItemType Directory -Path $awsDir -Force | Out-Null
-    # Set the folder as hidden (Windows only)
-    attrib +h $awsDir
+    attrib +h $awsDir  # Make folder hidden on Windows
 }
 
 # Write the config file
@@ -41,7 +39,7 @@ $configContent = @"
 region = us-east-1
 "@
 $configPath = Join-Path $awsDir "config"
-$configContent | Set-Content -Path $configPath
+$configContent | Set-Content -Path $configPath -Encoding UTF8
 
 # Write the credentials file
 $credentialsContent = @"
@@ -50,8 +48,9 @@ aws_access_key_id = $accessKeyId
 aws_secret_access_key = $secretAccessKey
 "@
 $credentialsPath = Join-Path $awsDir "credentials"
-$credentialsContent | Set-Content -Path $credentialsPath
+$credentialsContent | Set-Content -Path $credentialsPath -Encoding UTF8
 
 # Output confirmation
-Write-Host "IAM user '$userName' created and configured successfully."
-Write-Host "AWS CLI credentials saved to hidden folder: $awsDir"
+Write-Host "✅ IAM user '$userName' created and configured successfully."
+Write-Host "✅ AWS CLI credentials saved to hidden folder: $awsDir"
+Write-Host "✅ You can now run 'aws sts get-caller-identity' to verify access."
