@@ -1,60 +1,37 @@
+# Define the IAM user name and profile name
+$userName = "eks-s3-dynamo-ecr-ec2-user"
+$profileName = "igp-profile"
 
-# Ensure running as Administrator
-if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Error "This script must be run as Administrator."
-    exit 1
-}
+# Create the IAM user
+aws iam create-user --user-name $userName
 
-# Install Chocolatey
-Set-ExecutionPolicy Bypass -Scope Process -Force
-[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
-# Install packages
-choco install vscode -y
-choco install git -y
-choco install git.install -y
-choco install awscli -y
-choco install terraform -y
-choco install mobaxterm -y
-choco install openjdk --version=21.0.2 -y
-choco install maven -y
-choco install nilesoft-shell -y
-
-# Define paths to add
-$pathsToAdd = @(
-    "C:\Program Files\Microsoft VS Code\bin",
-    "C:\Program Files\Git\cmd",
-    "C:\Program Files\Git\bin",
-    "C:\Program Files\Amazon\AWSCLIV2\",
-    "C:\ProgramData\chocolatey\bin",
-    "C:\Program Files\OpenJDK\jdk-21.0.2\bin",
-    "C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.11\bin"
+# Define the list of policy ARNs to attach
+$policyArns = @(
+    "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+    "arn:aws:iam::aws:policy/AmazonEKSServicePolicy",
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+    "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess",
+    "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
 )
 
-# Get current system PATH
-$envPath = [Environment]::GetEnvironmentVariable("Path", [EnvironmentVariableTarget]::Machine)
-$envPathList = $envPath -split ";"
-
-# Add missing paths
-foreach ($path in $pathsToAdd) {
-    if (-not ($envPathList -contains $path)) {
-        Write-Output "Adding $path to system PATH"
-        $envPath += ";$path"
-    }
+# Attach each policy to the user
+foreach ($policyArn in $policyArns) {
+    aws iam attach-user-policy --user-name $userName --policy-arn $policyArn
 }
 
-# Update system PATH
-[Environment]::SetEnvironmentVariable("Path", $envPath, [EnvironmentVariableTarget]::Machine)
+# Create access keys for the user
+$accessKey = aws iam create-access-key --user-name $userName | ConvertFrom-Json
+$accessKeyId = $accessKey.AccessKey.AccessKeyId
+$secretAccessKey = $accessKey.AccessKey.SecretAccessKey
 
-# Set JAVA_HOME if not already set
-$currentJavaHome = [Environment]::GetEnvironmentVariable("JAVA_HOME", [EnvironmentVariableTarget]::Machine)
-if ([string]::IsNullOrEmpty($currentJavaHome)) {
-    $javaHome = "C:\Program Files\OpenJDK\jdk-21.0.2"
-    [Environment]::SetEnvironmentVariable("JAVA_HOME", $javaHome, [EnvironmentVariableTarget]::Machine)
-    Write-Output "JAVA_HOME was not set. Now set to: $javaHome"
-} else {
-    Write-Output "JAVA_HOME is already set to: $currentJavaHome"
-}
+# Configure the new profile using aws configure set
+aws configure set aws_access_key_id $accessKeyId --profile $profileName
+aws configure set aws_secret_access_key $secretAccessKey --profile $profileName
+aws configure set region us-east-1 --profile $profileName
+aws configure set output json --profile $profileName
 
-Write-Output "Installation and environment setup complete. Please restart your computer to apply changes."
+# Output confirmation
+Write-Host "✅ IAM user '$userName' created."
+Write-Host "✅ Profile '$profileName' configured using aws CLI."
+Write-Host "✅ You can now use: aws sts get-caller-identity --profile $profileName"
