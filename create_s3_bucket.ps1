@@ -1,4 +1,3 @@
-
 # PowerShell Script to Create an S3 Bucket for Terraform Remote Backend
 
 # Set the bucket name
