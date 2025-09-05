@@ -1,17 +1,24 @@
-# PowerShell Script to Create an S3 Bucket for Terraform Remote Backend
+# PowerShell Script to Create an S3 Bucket for Terraform Remote Backend with Error Handling
 
-# Set the bucket name
 $bucketName = "igp-terraform-remote-backend-s3"
-$region = "us-east-1"  # Change to your preferred AWS region
+$region = "us-east-1"
 
-# Create the S3 bucket (no LocationConstraint needed for us-east-1)
-aws s3api create-bucket `
-    --bucket $bucketName `
-    --region $region
+# Try to create the S3 bucket
+try {
+    $createResponse = aws s3api create-bucket --bucket $bucketName --region $region
 
-# Enable versioning (recommended for Terraform backend)
-aws s3api put-bucket-versioning `
-    --bucket $bucketName `
-    --versioning-configuration Status=Enabled
+    Write-Host "Bucket '$bucketName' created successfully."
 
-Write-Host "S3 bucket '$bucketName' created and versioning enabled."
+    # Enable versioning
+    try {
+        aws s3api put-bucket-versioning --bucket $bucketName --versioning-configuration Status=Enabled
+
+        Write-Host "Versioning enabled for bucket '$bucketName'."
+    }
+    catch {
+        Write-Host "Failed to enable versioning: $_"
+    }
+}
+catch {
+    Write-Host "Failed to create bucket: $_"
+}
