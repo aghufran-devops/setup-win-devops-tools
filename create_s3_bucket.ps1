@@ -4,11 +4,10 @@
 $bucketName = "igp-terraform-remote-backend-s3"
 $region = "us-east-1"  # Change to your preferred AWS region
 
-# Create the S3 bucket
+# Create the S3 bucket (no LocationConstraint needed for us-east-1)
 aws s3api create-bucket `
     --bucket $bucketName `
-    --region $region `
-    --create-bucket-configuration LocationConstraint=$region
+    --region $region
 
 # Enable versioning (recommended for Terraform backend)
 aws s3api put-bucket-versioning `
